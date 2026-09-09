@@ -2365,5 +2365,79 @@
         </section>
       </div>
     </footer>
+
+    <script>
+      const API_URL = "/get-property?most-popular=true&limit=6";
+
+      async function loadProperties() {
+        const grid = document.querySelector(".property-grid");
+        if (!grid) return;
+
+        try {
+          const res = await fetch(API_URL);
+          const data = await res.json();
+          const items = data?.Result?.Items || [];
+
+          if (!items.length) return;
+
+          grid.innerHTML = items
+            .map((item) => {
+              const p = item.Property;
+              const geo = item.GeoInfo;
+              const price = p.Price ? `$${Math.round(p.Price)}` : "N/A";
+              const rating = p.ReviewScore ? `${p.ReviewScore}.0 Exceptional` : "Top Rated";
+              const reviews = p.Counts?.Reviews ? `${p.Counts.Reviews} Reviews` : "Verified";
+              // const location = `${geo?.Categories?.[1]?.Name \vert{}\vert{} "FL"} > ${geo?.City || "Orlando"}`;
+              const imageSrc = p.FeatureImage 
+                ? `/images/${p.FeatureImage}` 
+                : "assets/images/wide-resort1.jpg";
+
+              return `
+                <article class="property-card">
+                  <div class="property-image">
+                    <img src="${imageSrc}" alt="${p.PropertyName}" onerror="this.src='assets/images/wide-resort1.jpg'" />
+                    <span class="course-badge">50+ Golf <br /> Courses Nearby</span>
+                    <div class="image-icons">
+                      <img src="assets/icons/leaf.svg" alt="Leaf" />
+                      <img src="assets/icons/marker.svg" alt="Marker" />
+                      <img src="assets/icons/heart.svg" alt="Heart" />
+                    </div>
+                  </div>
+                  <div class="property-body">
+                    <div class="property-rating">
+                      <img src="assets/icons/circle-star.svg" alt="Rating star" />
+                      ${rating}
+                      <strong class="property-rating-separator">|</strong>
+                      <span class="property-rating-reviews">${reviews}</span>
+                    </div>
+                    <h3>${p.PropertyName}</h3>
+                    <p class="booking-source">Booking.com</p>
+                    <strong class="property-price-container">
+                      From ${price}
+                      <img src="assets/icons/info.svg" alt="Info" />
+                    </strong>
+                    ${
+                    // <p class="property-details">
+                    //   Bedrooms: ${p.Counts?.Bedroom || 1} • Sleeps: ${p.Counts?.Occupancy \vert{}\vert{} 2} • ${p.PropertyType || "Resort"}
+                    // </p>
+                    // <p class="property-location">${location}</p>
+                    10
+                    }
+                    <div class="property-actions">
+                      <button class="btn btn-outline">Learn More</button>
+                      <button class="btn btn-primary">See Dates</button>
+                    </div>
+                  </div>
+                </article>
+              `;
+            })
+            .join("");
+        } catch (err) {
+          console.error("Could not fetch dynamic property data:", err);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadProperties);
+    </script>
   </body>
 </html>
