@@ -3554,11 +3554,11 @@ body.modal-open {
     gap: 20px;
   }
 
-  .reviews-grid > *:not(:first-child),
+  /* .reviews-grid > *:not(:first-child),
   .seasons-grid > *:not(:first-child),
   .property-grid > *:not(:first-child) {
     display: none;
-  }
+  } */
 
   .seasons-grid {
     grid-template-columns: 1fr;
