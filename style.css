@@ -791,6 +791,60 @@ body.modal-open {
   color: var(--text-muted);
 }
 
+/* COURSE DESCRIPTION EXPAND / See Less */
+
+.description-expanded {
+  display: none;
+}
+
+
+.course-overview-description.is-expanded 
+.description-expanded {
+  display: inline;
+}
+
+
+.read-more-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+
+.read-more-link {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  color: var(--text-dark);
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  padding: 0;
+}
+
+
+.read-more-arrow {
+  width: 16px;
+  height: 16px;
+
+  transition: transform 0.3s ease;
+}
+
+
+/* rotate arrow when expanded */
+
+.course-overview-description.is-expanded 
+.read-more-arrow {
+  transform: rotate(180deg);
+}
+
 .course-highlight-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

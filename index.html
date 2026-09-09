@@ -338,9 +338,35 @@
                   exceptional playing conditions, making it a must-play
                   destination for golf enthusiasts.
 
-                  <span id="read-more-link-container">
-                    <a href="#" class="read-more-link"> Read More </a>
+                  <span class="description-expanded">
+                    The course layout at Eagle Creek Golf Club has been
+                    carefully designed to integrate with the surrounding
+                    landscape rather than overpower it. Every hole presents a
+                    unique challenge, requiring players to carefully consider
+                    their strategy, shot placement, and course management
+                    skills. The combination of strategically positioned bunkers,
+                    undulating fairways, water hazards, and carefully designed
+                    greens creates a stimulating experience for both
+                    professional golfers and recreational players. One of the
+                    most remarkable aspects of Eagle Creek Golf Club is its
+                    commitment to maintaining outstanding course conditions
+                    throughout the year. The fairways are carefully maintained,
+                    the greens are consistently smooth and fast, and the overall
+                    presentation reflects a strong dedication to quality. Beyond
+                    the course itself, Eagle Creek Golf Club offers a complete
+                    experience designed to satisfy every visitor. The clubhouse
+                    provides a welcoming space where golfers can relax before or
+                    after their rounds, socialize with fellow players, and enjoy
+                    comfortable facilities.
+                  </span>
+
+                  <span class="read-more-container">
+                    <button class="read-more-link" type="button">
+                      See More
+                    </button>
+
                     <img
+                      class="read-more-arrow"
                       src="assets/icons/dropdown-arrow.svg"
                       alt="Dropdown Arrow"
                     />
@@ -420,8 +446,14 @@
                     </button> -->
 
                     <div class="sort-select-wrapper">
-                      <select id="sort-select" class="sort-select" aria-label="Sort properties">
-                        <option value="most-popular" selected>Most Popular</option>
+                      <select
+                        id="sort-select"
+                        class="sort-select"
+                        aria-label="Sort properties"
+                      >
+                        <option value="most-popular" selected>
+                          Most Popular
+                        </option>
                         <option value="highest-price">Highest Price</option>
                         <option value="lowest-price">Lowest Price</option>
                       </select>
@@ -2190,7 +2222,9 @@
               <div class="price-summary">
                 <div class="price-row-night">
                   <span> PRICE PER NIGHT </span>
-                  <strong> USD $ <span id="price-per-night">2026</span> </strong>
+                  <strong>
+                    USD $ <span id="price-per-night">2026</span>
+                  </strong>
                 </div>
 
                 <div class="price-row-total">
@@ -2482,9 +2516,23 @@
           <div class="guest-row" data-type="infants">
             <span class="guest-row__label">Infants</span>
             <div class="guest-stepper">
-              <button type="button" class="guest-stepper__btn" data-action="decrement" aria-label="Decrease infants">-</button>
+              <button
+                type="button"
+                class="guest-stepper__btn"
+                data-action="decrement"
+                aria-label="Decrease infants"
+              >
+                -
+              </button>
               <span class="guest-stepper__value" data-value="infants">0</span>
-              <button type="button" class="guest-stepper__btn" data-action="increment" aria-label="Increase infants">+</button>
+              <button
+                type="button"
+                class="guest-stepper__btn"
+                data-action="increment"
+                aria-label="Increase infants"
+              >
+                +
+              </button>
             </div>
           </div>
 
@@ -2518,8 +2566,9 @@
     <script src="https://cdn.jsdelivr.net/npm/hotel-datepicker@4/dist/js/hotel-datepicker.min.js"></script>
 
     <!-- Custom App Script -->
-    <script src="./ui-scripts/index.js"></script>
-    <script src="./ui-scripts/modal.js"></script>
     <script src="./ui-scripts/guest-filter.js"></script>
+    <script src="./ui-scripts/modal.js"></script>
+    <script src="./ui-scripts/course-description.js"></script>
+    <script src="./ui-scripts/index.js"></script>
   </body>
 </html>
