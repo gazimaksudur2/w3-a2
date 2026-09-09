@@ -1,185 +1,155 @@
-# Stay&Play – Eagle Creek Golf Club
+# Travel API Full stack project
 
-A responsive golf travel and accommodation webpage that I built as part of my front-end development assignment.
+Express API that serves property listing datasets and property images.
 
-## 🌐 Live Demo
-
-The project is deployed on Netlify and can be viewed here:
-
-**[View Live Project](https://w3-assignment1.netlify.app/)**
-
----
-
-## About the Project
-
-For this assignment, I built a responsive **Stay&Play golf course and accommodation webpage** based around Eagle Creek Golf Club in Orlando, Florida.
-
-My goal was to create something that feels closer to a real travel website instead of just a basic static webpage. The page brings together golf course information, nearby accommodation, pricing, reviews, weather, course facilities, and booking-related UI in one place.
-
-While developing the project, I mainly focused on writing clean HTML, organizing a fairly large webpage properly, creating reusable CSS components, and making the complete design responsive across desktop, tablet, and mobile devices.
-
----
-
-## Main Features
-
-Some of the main features I implemented are:
-
-* Responsive navigation bar
-* Golf course breadcrumb navigation
-* Course rating and tee-time information
-* Responsive image gallery
-* Course overview and statistics
-* Stay & Play pricing section
-* Nearby accommodation cards
-* Property filter interface
-* Pagination UI
-* Embedded Google Map
-* Detailed golf club highlights
-* Special Stay & Play packages
-* Guest review cards
-* Course facilities and amenities
-* Weather forecast section
-* Seasonal weather information
-* Nearby golf course recommendations
-* Desktop booking card
-* Responsive footer
-* Mobile and tablet-specific layouts
-
----
-
-## Technologies Used
-
-I built this project using:
-
-* **HTML5**
-* **CSS3**
-* **CSS Grid**
-* **Flexbox**
-* **CSS Custom Properties**
-* **Media Queries**
-* **Google Fonts**
-* **Google Maps Embed**
-
-For typography, I used **Montserrat** for headings and **Inter** for body text.
-
-I did not use frameworks such as Bootstrap or Tailwind CSS. I wanted to build the layout and responsive behavior with my own CSS so I could practice the fundamentals properly.
-
----
-
-## Responsive Design
-
-Responsiveness was one of the most important parts of this project.
-
-Instead of simply shrinking the desktop version, I changed several parts of the layout depending on the screen size.
-
-On larger screens, the main content and booking area are displayed in a two-column layout. The booking card stays visible beside the course information while the user scrolls.
-
-On tablet-sized screens, the main content switches to a single-column layout, the navigation becomes more compact, and the desktop booking card is replaced by a smaller Stay & Play panel.
-
-On mobile devices, sections such as the property listings, reviews, highlights, weather information, gallery, navigation, and footer are reorganized further to make them easier to view on smaller screens.
-
-I also added additional breakpoints for very small mobile screens so that the design remains usable without horizontal overflow.
-
----
-
-## Project Structure
-
-A simplified version of my project structure is:
-
-```text
-StayAndPlay/
-│
-├── index.html
-├── style.css
-│
-└── assets/
-    ├── icons/
-    │   └── ...
-    │
-    └── images/
-        └── ...
-```
-
-The `assets` directory contains the images, SVG icons, logos, weather icons, profile images, property images, and other visual resources used throughout the website.
-
----
-
-## Page Sections
-
-### Navigation
-
-I created a sticky navigation bar containing the Stay&Play logo, navigation links, a **Book a Tee Time** button, search interface, and hamburger menu for smaller screens.
-
-## Running the Project Locally
-
-There is no complicated installation process because this is a front-end HTML and CSS project.
-
-### 1. Clone the repository
+## Setup
 
 ```bash
-git clone https://github.com/gazimaksudur2/w3-a1
+npm install
+cp .env.example .env   # optional, defaults work out of the box
+npm run dev             # starts the server and restarts on file changes
 ```
 
-### 2. Open the project folder
+Or just run it with:
 
-Make sure the `index.html`, CSS file `style.css`, and `assets` folder remain in their correct locations.
+```bash
+npm start
+```
 
-### 3. Run the website
-
-You can simply open `index.html` in a web browser.
-
-During development, I prefer using the **Live Server** extension in Visual Studio Code because it automatically refreshes the browser whenever I save my changes.
-
-No package installation, dependency installation, or build command is required.
+Server defaults to `http://localhost:3000`.
 
 ---
 
-## Deployment
+## Endpoints
 
-I deployed the completed project using **Netlify**.
+### `GET /get-property`
 
-The live version is available at:
+Returns one of the three property datasets. You can also cap how many items come back with `limit`.
 
-**https://w3-assignment1.netlify.app/**
+| Query param      | Type    | Required | Notes                                      |
+|-------------------|---------|----------|---------------------------------------------|
+| `most-popular`    | boolean | one of the three | must be exactly `"true"` |
+| `highest-price`    | boolean | one of the three | must be exactly `"true"` |
+| `lowest-price`     | boolean | one of the three | must be exactly `"true"` |
+| `limit`            | integer | optional | positive integer; if you ask for more than exist, you just get all of them |
 
-Deploying the website also helped me check the final layout in a real hosted environment instead of testing it only from my local machine.
+Exactly **one** of `most-popular` / `highest-price` / `lowest-price` must be `true`.
+
+**Example:**
+```
+GET /get-property?most-popular=true&limit=4
+```
+
+**Response shape** (original dataset structure is kept, `Items` is sliced to `limit`):
+```json
+{
+  "GeoInfo": { "...": "..." },
+  "Result": {
+    "Count": 10000,
+    "ReturnedCount": 4,
+    "Items": [ { "ID": "BC-12660331", "...": "..." } ]
+  },
+  "Sts": { "...": "..." },
+  "Success": true
+}
+```
+- `Count` = total items in the source dataset
+- `ReturnedCount` = how many items are actually in this response
+
+**Error responses** (`400`):
+- No selector flag provided
+- More than one selector flag is `true`
+- `limit` is not a positive integer (e.g. `limit=-5`, `limit=abc`, `limit=0`)
+
+```json
+{ "success": false, "error": "Missing dataset selector. Provide one of: \"most-popular=true\", \"highest-price=true\", \"lowest-price=true\"." }
+```
 
 ---
 
-## What I Learned
+### `GET /images`
 
-This project gave me experience working on a much larger interface than a simple landing page.
+Returns the 10 property images.
 
-While building it, I improved my understanding of:
+```
+GET /images
+```
+```json
+["/images/image1.jpg", "/images/image2.jpg", "..."]
+```
 
-* Semantic HTML structure
-* CSS Grid
-* Flexbox
-* Responsive web design
-* Media queries
-* Reusable CSS components
-* CSS variables
-* Responsive typography
-* Card-based layouts
-* Working with SVG icons
-* Image handling
-* Google Maps embedding
-* Organizing a long webpage
-* Designing for multiple screen sizes
-* Deploying a website using Netlify
+Add `?full=true` if you also want the id and alt text:
+```
+GET /images?full=true
+```
+```json
+[{ "id": 1, "path": "/images/image1.jpg", "alt": "Property image 1" }]
+```
 
-One of the biggest lessons I learned from this project is that responsive design is not just about making everything smaller. Sometimes components need to be rearranged, simplified, hidden, or replaced completely depending on the device.
+The image files themselves are served as static files:
+```
+GET /images/image1.jpg   -> image/jpeg
+```
 
 ---
 
-## Final Note
+## `src/data/images.json`
 
-I built this project to practice creating a realistic, responsive, and relatively large front-end website using core web technologies.
+This file drives the `/images` endpoint. You can add, remove, or rename images here without touching the rest of the code.
 
-Instead of relying on a CSS framework, I worked directly with HTML and CSS so that I could better understand how layouts, breakpoints, spacing, typography, reusable components, and responsive behavior work together.
+```json
+{
+  "images": [
+    { "id": 1, "path": "/images/image1.jpg", "alt": "Cozy lakeside cabin exterior" },
+    { "id": 2, "path": "/images/image2.jpg", "alt": "Modern kitchen with island" }
+  ]
+}
+```
 
-The current version is primarily a responsive front-end prototype, but the structure can be expanded into a complete Stay&Play platform in the future by adding JavaScript, external APIs, backend services, and a database.
+- `id` — just a unique number
+- `path` — must start with `/images/` and match a file in `public/images/`
+- `alt` — optional description
 
-### Live Project
+The file is loaded once when the server starts. Restart (or let `npm run dev` reload) after you edit it.
 
-👉 **https://w3-assignment1.netlify.app/**
+---
+
+## Project structure
+
+```
+src/
+  app.js                    Express setup
+  index.js                  starts the server
+  controllers/
+    property.controller.js  GET /get-property
+    images.controller.js    GET /images
+  services/
+    property.service.js     loads the 3 property datasets
+    images.service.js       loads images.json
+  routes/
+    property.routes.js
+    images.routes.js
+  middlewares/
+    errorHandler.js
+    notFound.js
+  utils/
+    ApiError.js
+    loadJson.js
+    queryParsers.js
+  data/
+    most_popular.json
+    highest_price.json
+    lowest_price.json
+    images.json
+public/
+  images/
+    image1.jpg ... image10.jpg
+```
+
+## Notes
+
+- Datasets are loaded into memory on startup, so a bad json file fails immediately instead of on the first request.
+- Query flags only accept the string `"true"`. `limit` has to be a positive integer. Anything else is a 400.
+- If `limit` is bigger than the dataset, it just returns everything.
+- API routes are registered before `express.static` so `/images` doesn't collide with the `public/images` folder.
+- Stack traces stay on the server in production; the client just gets a generic 500.
