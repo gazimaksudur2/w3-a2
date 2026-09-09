@@ -18,6 +18,12 @@
       rel="stylesheet"
     />
 
+    <!-- Hotel Datepicker CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/hotel-datepicker@4/dist/css/hotel-datepicker.css"
+    />
+
     <link rel="stylesheet" href="style.css" />
   </head>
 
@@ -193,7 +199,7 @@
                 <div class="gallery-item gallery-item--main">
                   <!-- <img src="assets/images/hero-golf-club1.jpg" alt="Scenic view of Eagle Creek Golf Club Orlando" /> -->
                   <img
-                    src="https://www.golftours.com/wp-content/uploads/2025/04/Eagle-Creek-Golf-Club-5.jpg"
+                    src="assets/images/image1.jpg"
                     alt="Scenic view of Eagle Creek Golf Club Orlando"
                   />
                 </div>
@@ -211,14 +217,14 @@
                 <div class="gallery-side">
                   <div class="gallery-item">
                     <img
-                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRyw8WIo4VJp2ysIKzrx_2a0_NhX-H5hAfDkQVHFn6ow&s=10"
+                      src="assets/images/image2.jpg"
                       alt="Golf course landscape at Eagle Creek Golf Club"
                     />
                   </div>
 
                   <div class="gallery-item gallery-item--last">
                     <img
-                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTbLLumq8Kso36TdAqRKlrRg_XoHZCSbJqPWD3EOnG2Hw&s=10"
+                      src="assets/images/image3.jpg"
                       alt="Golfers enjoying Eagle Creek Golf Club"
                     />
 
@@ -389,38 +395,29 @@
                   </h2>
 
                   <div class="stay-filters" aria-label="Stay filters">
-                    <button class="filter-button">
-                      Stay Within 10 Miles
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button>
+                  <button class="filter-button">
+                    Stay Within 10 Miles
+                    <img src="assets/icons/dropdown-arrow.svg" alt="Dropdown Arrow" />
+                  </button>
 
-                    <button class="filter-button">
-                      Property Type
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button>
+                  <button class="filter-button">
+                    Property Type
+                    <img src="assets/icons/dropdown-arrow.svg" alt="Dropdown Arrow" />
+                  </button>
 
-                    <button class="filter-button">
-                      2 Bedroom
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button>
+                  <button class="filter-button" id="bedroom-filter-button">
+                    2 Bedroom
+                    <img src="assets/icons/dropdown-arrow.svg" alt="Dropdown Arrow" />
+                  </button>
 
-                    <button class="filter-button">
-                      Most Popular
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button>
+                  <div class="sort-select-wrapper">
+                    <select id="sort-select" class="sort-select" aria-label="Sort properties">
+                      <option value="most-popular" selected>Most Popular</option>
+                      <option value="highest-price">Highest Price</option>
+                      <option value="lowest-price">Lowest Price</option>
+                    </select>
                   </div>
+                </div>
                 </header>
 
                 <div class="stay-content">
@@ -1439,7 +1436,6 @@
                         <span>Golf Pro John Smith</span>
                       </div>
                     </article>
-
                   </div>
                   <div class="review-carousel-wrapper">
                     <div class="review-carousel-filled"></div>
@@ -2113,28 +2109,30 @@
               </h2>
 
               <!-- Date Selection -->
-              <div class="date-row">
-                <button class="date-field">
+              <div class="date-row" id="datepicker-wrapper">
+                <input
+                  type="text"
+                  id="hotel-datepicker-input"
+                  class="hotel-date-input-overlay"
+                  autocomplete="off"
+                  aria-label="Select check-in and check-out dates"
+                />
+                <div class="date-field" id="checkin-field">
                   <span>CHECK-IN</span>
-
-                  <strong> 19 SEP 2025 </strong>
-
+                  <strong id="display-checkin">Select Date</strong>
                   <img
                     src="assets/icons/dropdown-arrow.svg"
                     alt="Dropdown Arrow"
                   />
-                </button>
-
-                <button class="date-field">
+                </div>
+                <div class="date-field" id="checkout-field">
                   <span>CHECK-OUT</span>
-
-                  <strong> 21 SEP 2025 </strong>
-
+                  <strong id="display-checkout">Select Date</strong>
                   <img
                     src="assets/icons/dropdown-arrow.svg"
                     alt="Dropdown Arrow"
                   />
-                </button>
+                </div>
               </div>
 
               <!-- Guests -->
@@ -2177,14 +2175,12 @@
               <div class="price-summary">
                 <div class="price-row-night">
                   <span> PRICE PER NIGHT </span>
-
-                  <strong> USD $600 </strong>
+                  <strong> USD $ <span id="price-per-night">2026</span> </strong>
                 </div>
 
                 <div class="price-row-total">
                   <span> TOTAL PRICE </span>
-
-                  <strong> USD $600 </strong>
+                  <strong> USD $ <span id="total-price">2026</span></strong>
                 </div>
               </div>
 
@@ -2366,78 +2362,150 @@
       </div>
     </footer>
 
-    <script>
-      const API_URL = "/get-property?most-popular=true&limit=6";
+    <!-- Full Gallery Modal -->
+    <div
+      id="gallery-modal"
+      class="gallery-modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gallery-modal-title"
+    >
+      <div class="gallery-modal__backdrop" id="gallery-modal-backdrop"></div>
+      <div class="gallery-modal__dialog">
+        <header class="gallery-modal__header">
+          <h3 id="gallery-modal-title">
+            Photo Gallery (<span id="modal-image-count">10</span> Images)
+          </h3>
+          <button
+            type="button"
+            class="gallery-modal__close"
+            id="gallery-modal-close"
+            aria-label="Close gallery"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
+        <div class="gallery-modal__body">
+          <div class="gallery-modal__grid" id="modal-gallery-grid">
+            <!-- Populated dynamically via script.js -->
+          </div>
+        </div>
+      </div>
+    </div>
 
-      async function loadProperties() {
-        const grid = document.querySelector(".property-grid");
-        if (!grid) return;
+    <!-- Guest / Filters Modal -->
+    <div
+      id="guest-modal"
+      class="guest-modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="guest-modal-title"
+    >
+      <div class="guest-modal__backdrop" id="guest-modal-backdrop"></div>
+      <div class="guest-modal__dialog">
+        <header class="guest-modal__header">
+          <h3 id="guest-modal-title">Filters</h3>
+          <button
+            type="button"
+            class="guest-modal__close"
+            id="guest-modal-close"
+            aria-label="Close filters"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
 
-        try {
-          const res = await fetch(API_URL);
-          const data = await res.json();
-          const items = data?.Result?.Items || [];
+        <div class="guest-modal__body">
+          <div class="guest-row" data-type="guests">
+            <span class="guest-row__label">Guests</span>
+            <div class="guest-stepper">
+              <button
+                type="button"
+                class="guest-stepper__btn"
+                data-action="decrement"
+                aria-label="Decrease guests"
+              >
+                −
+              </button>
+              <span class="guest-stepper__value" data-value="guests">1</span>
+              <button
+                type="button"
+                class="guest-stepper__btn"
+                data-action="increment"
+                aria-label="Increase guests"
+              >
+                +
+              </button>
+            </div>
+          </div>
 
-          if (!items.length) return;
+          <div class="guest-row" data-type="infants">
+            <span class="guest-row__label">Infants</span>
+            <div class="guest-stepper">
+              <button type="button" class="guest-stepper__btn" data-action="decrement" aria-label="Decrease infants">-</button>
+              <span class="guest-stepper__value" data-value="infants">0</span>
+              <button type="button" class="guest-stepper__btn" data-action="increment" aria-label="Increase infants">+</button>
+            </div>
+          </div>
 
-          grid.innerHTML = items
-            .map((item) => {
-              const p = item.Property;
-              const geo = item.GeoInfo;
-              const price = p.Price ? `$${Math.round(p.Price)}` : "N/A";
-              const rating = p.ReviewScore ? `${p.ReviewScore}.0 Exceptional` : "Top Rated";
-              const reviews = p.Counts?.Reviews ? `${p.Counts.Reviews} Reviews` : "Verified";
-              // const location = `${geo?.Categories?.[1]?.Name \vert{}\vert{} "FL"} > ${geo?.City || "Orlando"}`;
-              const imageSrc = p.FeatureImage 
-                ? `/images/${p.FeatureImage}` 
-                : "assets/images/wide-resort1.jpg";
+          <div class="guest-row" data-type="pets">
+            <span class="guest-row__label">Pets</span>
+            <div class="guest-stepper">
+              <button
+                type="button"
+                class="guest-stepper__btn"
+                data-action="decrement"
+                aria-label="Decrease pets"
+              >
+                −
+              </button>
+              <span class="guest-stepper__value" data-value="pets">0</span>
+              <button
+                type="button"
+                class="guest-stepper__btn"
+                data-action="increment"
+                aria-label="Increase pets"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Dependencies: Fecha & Hotel Datepicker -->
+    <script src="https://cdn.jsdelivr.net/npm/fecha@4.2.3/lib/fecha.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hotel-datepicker@4/dist/js/hotel-datepicker.min.js"></script>
 
-              return `
-                <article class="property-card">
-                  <div class="property-image">
-                    <img src="${imageSrc}" alt="${p.PropertyName}" onerror="this.src='assets/images/wide-resort1.jpg'" />
-                    <span class="course-badge">50+ Golf <br /> Courses Nearby</span>
-                    <div class="image-icons">
-                      <img src="assets/icons/leaf.svg" alt="Leaf" />
-                      <img src="assets/icons/marker.svg" alt="Marker" />
-                      <img src="assets/icons/heart.svg" alt="Heart" />
-                    </div>
-                  </div>
-                  <div class="property-body">
-                    <div class="property-rating">
-                      <img src="assets/icons/circle-star.svg" alt="Rating star" />
-                      ${rating}
-                      <strong class="property-rating-separator">|</strong>
-                      <span class="property-rating-reviews">${reviews}</span>
-                    </div>
-                    <h3>${p.PropertyName}</h3>
-                    <p class="booking-source">Booking.com</p>
-                    <strong class="property-price-container">
-                      From ${price}
-                      <img src="assets/icons/info.svg" alt="Info" />
-                    </strong>
-                    ${
-                    // <p class="property-details">
-                    //   Bedrooms: ${p.Counts?.Bedroom || 1} • Sleeps: ${p.Counts?.Occupancy \vert{}\vert{} 2} • ${p.PropertyType || "Resort"}
-                    // </p>
-                    // <p class="property-location">${location}</p>
-                    10
-                    }
-                    <div class="property-actions">
-                      <button class="btn btn-outline">Learn More</button>
-                      <button class="btn btn-primary">See Dates</button>
-                    </div>
-                  </div>
-                </article>
-              `;
-            })
-            .join("");
-        } catch (err) {
-          console.error("Could not fetch dynamic property data:", err);
-        }
-      }
-
-      document.addEventListener("DOMContentLoaded", loadProperties);
-    </script>
+    <!-- Custom App Script -->
+    <script src="./ui-scripts/index.js"></script>
+    <script src="./ui-scripts/modal.js"></script>
+    <script src="./ui-scripts/guest-filter.js"></script>
+    <script src="./ui-scripts/nearby-stay.js"></script>
   </body>
 </html>
