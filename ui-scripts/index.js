@@ -2,30 +2,61 @@
  * Stay&Play Client Controller
  */
 
-// Application State
+/* ==========================================================================
+   CONFIG
+   ========================================================================== */
+
+const IMAGE_SERVICE_BASE = "https://beta.imgservice.rentbyowner.com/640x300/";
+const PRICE_PER_NIGHT = 2026;
+const PLATFORM_LIMITS = { desktop: 6, mobile: 4 };
+
+/* ==========================================================================
+   PLATFORM DETECTION
+   ========================================================================== */
+
+function detectPlatform() {
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
+    return navigator.userAgentData.mobile ? "mobile" : "desktop";
+  }
+
+  const ua = navigator.userAgent || navigator.vendor || "";
+  const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+
+  return isMobileUA ? "mobile" : "desktop";
+}
+
+function getPlatformLimit() {
+  const platform = detectPlatform();
+  return PLATFORM_LIMITS[platform] ?? PLATFORM_LIMITS.desktop;
+}
+
+/* ==========================================================================
+   APPLICATION STATE
+   ========================================================================== */
+
 const state = {
   currentSort: "most-popular", // 'most-popular' | 'lowest-price' | 'highest-price'
-  limit: 24,
+  limit: getPlatformLimit(),    // 6 desktop / 4 mobile
   page: 1,
-  pageSize: 6,
+  pageSize: getPlatformLimit(),
   bedroomFilter: null,
   searchQuery: "",
   properties: [],
   selectedProperty: null,
   selectedNights: 1,
-  galleryImages: [], // Cached images for the hero section and modal[cite: 2]
+  galleryImages: [],
 };
 
 /* ==========================================================================
    API SERVICES
    ========================================================================== */
 
-async function fetchProperties(sortType = "most-popular", limit = 24) {
+async function fetchProperties(sortType = "most-popular", limit = state.limit) {
   try {
-    const res = await fetch(`/get-property?${sortType}=true&limit=${limit}`); //[cite: 2]
+    const res = await fetch(`/get-property?${sortType}=true&limit=${limit}`);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
-    return data?.Result?.Items || []; //[cite: 2]
+    return data?.Result?.Items || [];
   } catch (err) {
     console.error("Error fetching properties:", err);
     return [];
@@ -34,7 +65,7 @@ async function fetchProperties(sortType = "most-popular", limit = 24) {
 
 async function fetchGalleryImages() {
   try {
-    const res = await fetch("/images?full=true"); //[cite: 2]
+    const res = await fetch("/images?full=true");
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -51,7 +82,6 @@ function initHotelDatePicker() {
   const dateInput = document.getElementById("hotel-datepicker-input");
   if (!dateInput || typeof HotelDatepicker === "undefined") return;
 
-  // Zero out the time so "today" means the whole day, not "from this exact hour"
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -65,14 +95,9 @@ function initHotelDatePicker() {
   new HotelDatepicker(dateInput, {
     format: "YYYY-MM-DD",
     separator: " - ",
-
-    // Criterion 1: Past dates must not be selectable
-    startDate: today,          // disables every day before "today"
-    selectForward: true,       // prevents navigating/selecting backward past startDate
-
-    // Criterion 2: check-out must be at least 1 day after check-in
-    minNights: 1,               // enforces a minimum 1-night gap between check-in/check-out
-
+    startDate: today,
+    selectForward: true,
+    minNights: 1,
     showTopbar: true,
     autoClose: true,
   });
@@ -87,14 +112,12 @@ function initHotelDatePicker() {
 
     if (!startDate || !endDate) return;
 
-    // Defensive re-validation, in case the input value was ever set
-    // programmatically or the field was edited outside the picker UI
     const isPast = startDate < today;
     const isInvalidRange = endDate <= startDate;
 
     if (isPast || isInvalidRange) {
       console.warn("Invalid date selection blocked:", { startDate, endDate });
-      return; // don't update UI/state with an invalid range
+      return;
     }
 
     document.getElementById("display-checkin").textContent =
@@ -118,8 +141,6 @@ function initHotelDatePicker() {
    PRICING
    ========================================================================== */
 
-const PRICE_PER_NIGHT = 2026;
-
 function updateBookingTotals() {
   const pricePerNightEl = document.getElementById("price-per-night");
   const totalPriceEl = document.getElementById("total-price");
@@ -138,7 +159,7 @@ function updateBookingTotals() {
 
 function setupGalleryModal() {
   const modal = document.getElementById("gallery-modal");
-  const viewButton = document.querySelector(".gallery-view-button"); //[cite: 2]
+  const viewButton = document.querySelector(".gallery-view-button");
   const closeButton = document.getElementById("gallery-modal-close");
   const backdrop = document.getElementById("gallery-modal-backdrop");
   const grid = document.getElementById("modal-gallery-grid");
@@ -149,7 +170,6 @@ function setupGalleryModal() {
   function openModal() {
     if (!state.galleryImages.length) return;
 
-    // Populate modal images if not already rendered
     if (grid && grid.children.length === 0) {
       grid.innerHTML = state.galleryImages
         .map(
@@ -184,7 +204,6 @@ function setupGalleryModal() {
   closeButton?.addEventListener("click", closeModal);
   backdrop?.addEventListener("click", closeModal);
 
-  // Close with Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && modal.classList.contains("is-open")) {
       closeModal();
@@ -196,8 +215,8 @@ async function initGallery() {
   const images = await fetchGalleryImages();
   if (!images || !images.length) return;
 
-  // Cache globally on window so modal.js has immediate access
   window.galleryImages = images;
+  state.galleryImages = images;
 
   const mainImg = document.querySelector(".gallery-item--main img");
   const sideImgs = document.querySelectorAll(".gallery-side .gallery-item img");
@@ -221,20 +240,26 @@ async function initGallery() {
   if (viewAllBtn) {
     viewAllBtn.textContent = `View All ${images.length} Images`;
   }
+
+  setupGalleryModal();
 }
 
 /* ==========================================================================
    PROPERTY RENDERING & CARD ACTIONS
    ========================================================================== */
 
+function buildPropertyImageUrl(featureImage) {
+  if (!featureImage) return "assets/images/wide-resort1.jpg";
+  return `${IMAGE_SERVICE_BASE}${featureImage}`;
+}
+
 function renderProperties() {
-  const grid = document.querySelector(".property-grid"); //[cite: 2]
+  const grid = document.querySelector(".property-grid");
   if (!grid) return;
 
-  // Filter properties by search query and bedrooms
   const filtered = state.properties.filter((item) => {
-    const p = item.Property; //[cite: 2]
-    const geo = item.GeoInfo; //[cite: 2]
+    const p = item.Property;
+    const geo = item.GeoInfo;
 
     const matchesSearch =
       !state.searchQuery ||
@@ -242,7 +267,7 @@ function renderProperties() {
       geo?.City?.toLowerCase().includes(state.searchQuery.toLowerCase());
 
     const matchesBedrooms =
-      !state.bedroomFilter || p.Counts?.Bedroom === state.bedroomFilter; //[cite: 2]
+      !state.bedroomFilter || p.Counts?.Bedroom === state.bedroomFilter;
 
     return matchesSearch && matchesBedrooms;
   });
@@ -262,19 +287,17 @@ function renderProperties() {
 
   grid.innerHTML = paginatedItems
     .map((item) => {
-      const p = item.Property; //[cite: 2]
-      const geo = item.GeoInfo; //[cite: 2]
-      const price = p.Price ? `$${Math.round(p.Price)}` : "N/A"; //[cite: 2]
-      const rating = p.ReviewScore ? `${p.ReviewScore}.0 Exceptional` : "Top Rated"; //[cite: 2]
-      const reviews = p.Counts?.Reviews ? `${p.Counts.Reviews} Reviews` : "Verified"; //[cite: 2]
-      const location = `${geo?.City || "Orlando"}, ${geo?.Categories?.[1]?.Name || "FL"}`; //[cite: 2]
-      const imageSrc = p.FeatureImage
-        ? `/images/${p.FeatureImage}` //[cite: 2]
-        : "assets/images/wide-resort1.jpg"; //[cite: 2]
+      const p = item.Property;
+      const geo = item.GeoInfo;
+      const price = p.Price ? `$${Math.round(p.Price)}` : "N/A";
+      const rating = p.ReviewScore ? `${p.ReviewScore}.0 Exceptional` : "Top Rated";
+      const reviews = p.Counts?.Reviews ? `${p.Counts.Reviews} Reviews` : "Verified";
+      const location = `${geo?.City || "Orlando"}, ${geo?.Categories?.[1]?.Name || "FL"}`;
+      const imageSrc = buildPropertyImageUrl(p.FeatureImage);
 
       const topAmenities =
-        p.TopAmenities?.map((a) => a.Name).join(" • ") || //[cite: 2]
-        `Sleeps ${p.Counts?.Occupancy || 2} • ${p.PropertyType || "Resort"}`; //[cite: 2]
+        p.TopAmenities?.map((a) => a.Name).join(" • ") ||
+        `Sleeps ${p.Counts?.Occupancy || 2} • ${p.PropertyType || "Resort"}`;
 
       return `
         <article class="property-card" data-id="${item.ID}">
@@ -308,7 +331,7 @@ function renderProperties() {
             </div>
           </div>
         </article>
-      `; //[cite: 2]
+      `;
     })
     .join("");
 
@@ -317,9 +340,9 @@ function renderProperties() {
 
 function renderPagination(totalCount) {
   const totalPages = Math.ceil(totalCount / state.pageSize) || 1;
-  const paginationList = document.querySelector(".pagination__list"); //[cite: 2]
-  const prevBtn = document.querySelector(".pagination__prev"); //[cite: 2]
-  const nextBtn = document.querySelector(".pagination__next"); //[cite: 2]
+  const paginationList = document.querySelector(".pagination__list");
+  const prevBtn = document.querySelector(".pagination__prev");
+  const nextBtn = document.querySelector(".pagination__next");
 
   if (!paginationList || !prevBtn || !nextBtn) return;
 
@@ -337,7 +360,7 @@ function renderPagination(totalCount) {
           ${String(i).padStart(2, "0")}
         </button>
       </li>
-    `; //[cite: 2]
+    `;
   }
   paginationList.innerHTML = pagesHtml;
 }
@@ -345,7 +368,7 @@ function renderPagination(totalCount) {
 window.goToPage = function (pageNumber) {
   state.page = pageNumber;
   renderProperties();
-  document.querySelector(".nearby-stay-section")?.scrollIntoView({ behavior: "smooth" }); //[cite: 2]
+  document.querySelector(".nearby-stay-section")?.scrollIntoView({ behavior: "smooth" });
 };
 
 window.selectProperty = function (propertyId) {
@@ -353,28 +376,18 @@ window.selectProperty = function (propertyId) {
   if (!item) return;
 
   state.selectedProperty = item;
-  const p = item.Property; //[cite: 2]
+  const p = item.Property;
 
-  const bookingCard = document.querySelector(".booking-card"); //[cite: 2]
+  const bookingCard = document.querySelector(".booking-card");
   if (!bookingCard) return;
 
-  const formattedNightPrice = `$${Math.round(p.Price || 0)}`; //[cite: 2]
-
-  const mainHeader = bookingCard.querySelector("h2"); //[cite: 2]
-  if (mainHeader) {
-    mainHeader.innerHTML = `USD ${formattedNightPrice} <small>AVG PER NIGHT</small>`; //[cite: 2]
+  const guestText = bookingCard.querySelector(".guest-select strong");
+  if (guestText && p.Counts?.Occupancy) {
+    guestText.textContent = `${p.Counts.Occupancy} GUESTS, ${p.Counts.Bedroom || 1} BEDROOMS`;
   }
 
-  const priceRowNight = bookingCard.querySelector(".price-row-night strong"); //[cite: 2]
-  if (priceRowNight) priceRowNight.textContent = `USD ${formattedNightPrice}`;
-
-  const guestText = bookingCard.querySelector(".guest-select strong"); //[cite: 2]
-  if (guestText && p.Counts?.Occupancy) { //[cite: 2]
-    guestText.textContent = `${p.Counts.Occupancy} GUESTS, ${p.Counts.Bedroom || 1} BEDROOMS`; //[cite: 2]
-  }
-
-  const ctaButton = bookingCard.querySelector(".check-button"); //[cite: 2]
-  if (ctaButton && item.Partner?.URL) { //[cite: 2]
+  const ctaButton = bookingCard.querySelector(".check-button");
+  if (ctaButton && item.Partner?.URL) {
     ctaButton.onclick = () => window.open(item.Partner.URL, "_blank");
   }
 
@@ -383,64 +396,40 @@ window.selectProperty = function (propertyId) {
 };
 
 /* ==========================================================================
-   EVENT LISTENERS & FILTER CONTROLS
+   SORT DROPDOWN
+   ========================================================================== */
+
+function setupSortDropdown() {
+  const sortSelect = document.getElementById("sort-select");
+  if (!sortSelect) return;
+
+  sortSelect.value = state.currentSort;
+
+  sortSelect.addEventListener("change", async (e) => {
+    const sortType = e.target.value;
+    state.currentSort = sortType;
+    state.page = 1;
+    state.properties = await fetchProperties(sortType, state.limit);
+    renderProperties();
+  });
+}
+
+/* ==========================================================================
+   OTHER FILTER EVENTS
    ========================================================================== */
 
 function setupFilterEvents() {
-  const filterButtons = document.querySelectorAll(".stay-filters .filter-button"); //[cite: 2]
+  const bedroomButton = document.getElementById("bedroom-filter-button");
 
-  if (filterButtons.length >= 4) {
-    // 1: Lowest Price
-    filterButtons[0].childNodes[0].nodeValue = "Lowest Price ";
-    filterButtons[0].addEventListener("click", async () => {
-      setActiveFilterButton(filterButtons[0]);
-      state.currentSort = "lowest-price";
-      state.page = 1;
-      state.properties = await fetchProperties("lowest-price", state.limit); //[cite: 2]
-      renderProperties();
-    });
+  bedroomButton?.addEventListener("click", () => {
+    state.bedroomFilter = state.bedroomFilter === 2 ? null : 2;
+    bedroomButton.style.borderColor = state.bedroomFilter ? "var(--teal-accent)" : "";
+    bedroomButton.style.color = state.bedroomFilter ? "var(--teal-accent)" : "";
+    state.page = 1;
+    renderProperties();
+  });
 
-    // 2: Highest Price
-    filterButtons[1].childNodes[0].nodeValue = "Highest Price ";
-    filterButtons[1].addEventListener("click", async () => {
-      setActiveFilterButton(filterButtons[1]);
-      state.currentSort = "highest-price";
-      state.page = 1;
-      state.properties = await fetchProperties("highest-price", state.limit); //[cite: 2]
-      renderProperties();
-    });
-
-    // 3: 2-Bedroom filter toggle
-    filterButtons[2].addEventListener("click", () => {
-      state.bedroomFilter = state.bedroomFilter === 2 ? null : 2;
-      filterButtons[2].style.borderColor = state.bedroomFilter ? "var(--teal-accent)" : ""; //[cite: 2]
-      filterButtons[2].style.color = state.bedroomFilter ? "var(--teal-accent)" : ""; //[cite: 2]
-      state.page = 1;
-      renderProperties();
-    });
-
-    // 4: Most Popular
-    filterButtons[3].childNodes[0].nodeValue = "Most Popular ";
-    filterButtons[3].addEventListener("click", async () => {
-      setActiveFilterButton(filterButtons[3]);
-      state.currentSort = "most-popular";
-      state.page = 1;
-      state.properties = await fetchProperties("most-popular", state.limit); //[cite: 2]
-      renderProperties();
-    });
-  }
-
-  function setActiveFilterButton(activeBtn) {
-    [filterButtons[0], filterButtons[1], filterButtons[3]].forEach((btn) => {
-      btn.style.borderColor = "";
-      btn.style.color = "";
-    });
-    activeBtn.style.borderColor = "var(--green-primary)"; //[cite: 2]
-    activeBtn.style.color = "var(--green-primary)"; //[cite: 2]
-  }
-
-  // Search Input Handler
-  const searchInput = document.querySelector(".nav-search input"); //[cite: 2]
+  const searchInput = document.querySelector(".nav-search input");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       state.searchQuery = e.target.value.trim();
@@ -449,12 +438,11 @@ function setupFilterEvents() {
     });
   }
 
-  // Pagination navigation buttons
-  document.querySelector(".pagination__prev")?.addEventListener("click", () => { //[cite: 2]
+  document.querySelector(".pagination__prev")?.addEventListener("click", () => {
     if (state.page > 1) window.goToPage(state.page - 1);
   });
 
-  document.querySelector(".pagination__next")?.addEventListener("click", () => { //[cite: 2]
+  document.querySelector(".pagination__next")?.addEventListener("click", () => {
     window.goToPage(state.page + 1);
   });
 }
@@ -466,9 +454,9 @@ function setupFilterEvents() {
 document.addEventListener("DOMContentLoaded", async () => {
   initHotelDatePicker();
   setupFilterEvents();
+  setupSortDropdown();
   await initGallery();
 
-  // Load default dataset
   state.properties = await fetchProperties(state.currentSort, state.limit);
   if (state.properties.length > 0) {
     state.selectedProperty = state.properties[0];
@@ -477,27 +465,3 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderProperties();
   updateBookingTotals();
 });
-
-/* ==========================================================================
-   PLATFORM DETECTION
-   ========================================================================== */
-
-const PLATFORM_LIMITS = { desktop: 6, mobile: 4 };
-
-function detectPlatform() {
-  // Prefer the modern User-Agent Client Hints API when the browser supports it
-  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
-    return navigator.userAgentData.mobile ? "mobile" : "desktop";
-  }
-
-  // Fallback: parse the classic user agent string for known mobile signatures
-  const ua = navigator.userAgent || navigator.vendor || "";
-  const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
-
-  return isMobileUA ? "mobile" : "desktop";
-}
-
-function getPlatformLimit() {
-  const platform = detectPlatform();
-  return PLATFORM_LIMITS[platform] ?? PLATFORM_LIMITS.desktop;
-}
