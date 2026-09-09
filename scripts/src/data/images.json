@@ -1,0 +1,14 @@
+{
+  "images": [
+    { "id": 1, "path": "/images/image1.jpg", "alt": "Wide Golf Club 1" },
+    { "id": 2, "path": "/images/image2.jpg", "alt": "Wide Golf Club 2" },
+    { "id": 3, "path": "/images/image3.jpg", "alt": "Wide Golf Club 3" },
+    { "id": 4, "path": "/images/image4.jpg", "alt": "Wide Golf Club 4" },
+    { "id": 5, "path": "/images/image5.jpg", "alt": "Wide Golf Club 5" },
+    { "id": 6, "path": "/images/image6.jpg", "alt": "Wide Golf Club 6" },
+    { "id": 7, "path": "/images/image7.jpg", "alt": "Wide Golf Club 7" },
+    { "id": 8, "path": "/images/image8.jpg", "alt": "Wide Golf Club 8" },
+    { "id": 9, "path": "/images/image9.jpg", "alt": "Wide Golf Club 9" },
+    { "id": 10, "path": "/images/image10.jpg", "alt": "Wide Golf Club 10" }
+  ]
+}
