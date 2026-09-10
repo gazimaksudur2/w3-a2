@@ -4,6 +4,7 @@
  */
 
 (function () {
+  const GOOGLE_MAPS_API_KEY = __GOOGLE_MAPS_API_KEY__;
   const MARKER_DEFAULT = "#2e6b3e";
   const MARKER_ACTIVE = "#e11d48";
   let map = null;
@@ -206,17 +207,7 @@
 
     bindCardHover();
 
-    let apiKey = "";
-    try {
-      const res = await fetch("/maps-config");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const config = await res.json();
-      apiKey = config?.googleApiKey || "";
-    } catch (err) {
-      console.error("Failed to load maps config:", err);
-      showFallback("Map is unavailable right now.");
-      return;
-    }
+    const apiKey = typeof GOOGLE_MAPS_API_KEY === "string" ? GOOGLE_MAPS_API_KEY : "";
 
     if (!apiKey) {
       showFallback("Add GOOGLE_MAPS_API_KEY to your .env file to load the map.");

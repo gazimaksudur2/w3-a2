@@ -91,20 +91,7 @@ The image files themselves are served as static files:
 GET /images/image1.jpg   -> image/jpeg
 ```
 
----
-
-### `GET /maps-config`
-
-Returns the Google Maps JavaScript API key from `GOOGLE_MAPS_API_KEY` in `.env`. The nearby-stay map uses this to place markers for the currently displayed properties.
-
-```
-GET /maps-config
-```
-```json
-{ "googleApiKey": "..." }
-```
-
-If the env var is missing, `googleApiKey` is an empty string.
+The nearby-stay map does **not** use a config endpoint. `GOOGLE_MAPS_API_KEY` from `.env` is injected into `ui-scripts/property-map.js` when that file is served.
 
 ---
 
@@ -138,14 +125,12 @@ src/
   controllers/
     property.controller.js  GET /get-property
     images.controller.js    GET /images
-    maps.controller.js      GET /maps-config
   services/
     property.service.js     loads the 3 property datasets
     images.service.js       loads images.json
   routes/
     property.routes.js
     images.routes.js
-    maps.routes.js
   middlewares/
     errorHandler.js
     notFound.js
@@ -170,4 +155,5 @@ public/
 - Query flags only accept the string `"true"`. `limit` has to be a positive integer. Anything else is a 400.
 - If `limit` is bigger than the dataset, it just returns everything.
 - API routes are registered before `express.static` so `/images` doesn't collide with the `public/images` folder.
+- `GOOGLE_MAPS_API_KEY` is injected into `ui-scripts/property-map.js` when the server serves that file. There is no `/maps-config` route.
 - Stack traces stay on the server in production; the client just gets a generic 500.
