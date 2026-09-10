@@ -6,6 +6,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import propertyRoutes from "./routes/property.routes.js";
 import imagesRoutes from "./routes/images.routes.js";
+import mapsRoutes from "./routes/maps.routes.js";
 import { notFoundHandler } from "./middlewares/notFound.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
@@ -18,7 +19,7 @@ const FRONTEND_DIR = path.join(__dirname, "..", ".."); // Root directory with in
 export function createApp() {
   const app = express();
 
-  // Helmet relaxed for cross-origin resources (images, Google Maps iframe)
+  // Helmet relaxed for cross-origin resources (images, Google Maps)
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -38,6 +39,7 @@ export function createApp() {
   // 1. API Endpoints
   app.use(propertyRoutes);
   app.use(imagesRoutes);
+  app.use(mapsRoutes);
 
   // 2. Static image serving for the API dataset
   app.use(express.static(PUBLIC_DIR));

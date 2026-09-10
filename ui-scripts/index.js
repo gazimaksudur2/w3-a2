@@ -9,6 +9,7 @@
 const IMAGE_SERVICE_BASE = "https://beta.imgservice.rentbyowner.com/640x300/";
 const PRICE_PER_NIGHT = 2026;
 const PLATFORM_LIMITS = { desktop: 6, mobile: 4 };
+const FAVORITES_STORAGE_KEY = "stayplay.favoritePropertyIds";
 
 /* ==========================================================================
    PLATFORM DETECTION
@@ -211,9 +212,15 @@ function setupGalleryModal() {
   });
 }
 
+const FALLBACK_GALLERY_IMAGES = Array.from({ length: 10 }, (_, i) => ({
+  id: i + 1,
+  path: `/images/image${i + 1}.jpg`,
+  alt: `Golf course image ${i + 1}`,
+}));
+
 async function initGallery() {
-  const images = await fetchGalleryImages();
-  if (!images || !images.length) return;
+  const fetched = await fetchGalleryImages();
+  const images = fetched && fetched.length ? fetched : FALLBACK_GALLERY_IMAGES;
 
   window.galleryImages = images;
   state.galleryImages = images;
@@ -241,7 +248,108 @@ async function initGallery() {
     viewAllBtn.textContent = `View All ${images.length} Images`;
   }
 
+  if (typeof window.initGalleryCarousel === "function") {
+    window.initGalleryCarousel(images);
+  }
+
   setupGalleryModal();
+}
+
+/* ==========================================================================
+   PROPERTY FAVORITES (localStorage, shared across platforms)
+   ========================================================================== */
+
+function readFavoriteIds() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.map((id) => String(id)).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
+function writeFavoriteIds(ids) {
+  const unique = [...new Set(ids.map((id) => String(id)).filter(Boolean))];
+  localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(unique));
+  return unique;
+}
+
+function isFavoriteProperty(propertyId) {
+  return readFavoriteIds().includes(String(propertyId));
+}
+
+function toggleFavoriteProperty(propertyId) {
+  const key = String(propertyId);
+  if (!key) return false;
+
+  const ids = readFavoriteIds();
+  const next = ids.includes(key) ? ids.filter((id) => id !== key) : [...ids, key];
+  writeFavoriteIds(next);
+  return next.includes(key);
+}
+
+function applyFavoriteButtonState(button, active) {
+  button.classList.toggle("is-active", active);
+  button.setAttribute("aria-pressed", String(active));
+  button.setAttribute(
+    "aria-label",
+    active ? "Remove from favorites" : "Add to favorites"
+  );
+}
+
+function syncFavoriteButtons() {
+  document.querySelectorAll(".property-favorite[data-property-id]").forEach((button) => {
+    applyFavoriteButtonState(button, isFavoriteProperty(button.dataset.propertyId));
+  });
+}
+
+function renderFavoriteButton(propertyId) {
+  const safeId = String(propertyId).replace(/"/g, "&quot;");
+  const active = isFavoriteProperty(propertyId);
+
+  return `
+    <button
+      type="button"
+      class="property-favorite${active ? " is-active" : ""}"
+      data-property-id="${safeId}"
+      aria-pressed="${active}"
+      aria-label="${active ? "Remove from favorites" : "Add to favorites"}"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M12 6.00019C10.2006 3.90317 7.19377 3.2551 4.93923 5.17534C2.68468 7.09558 2.36727 10.3061 4.13778 12.5772C5.60984 14.4654 10.0648 18.4479 11.5249 19.7369C11.6882 19.8811 11.7699 19.9532 11.8652 19.9815C11.9483 20.0062 12.0393 20.0062 12.1225 19.9815C12.2178 19.9532 12.2994 19.8811 12.4628 19.7369C13.9229 18.4479 18.3778 14.4654 19.8499 12.5772C21.6204 10.3061 21.3417 7.07538 19.0484 5.17534C16.7551 3.2753 13.7994 3.90317 12 6.00019Z"
+        />
+      </svg>
+    </button>
+  `;
+}
+
+function setupFavoriteToggles() {
+  const grid = document.querySelector(".property-grid");
+  if (!grid || grid.dataset.favoritesBound === "true") return;
+
+  grid.dataset.favoritesBound = "true";
+
+  grid.addEventListener("click", (event) => {
+    const button = event.target.closest(".property-favorite");
+    if (!button || !grid.contains(button)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const propertyId = button.dataset.propertyId;
+    if (!propertyId) return;
+
+    applyFavoriteButtonState(button, toggleFavoriteProperty(propertyId));
+  });
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== FAVORITES_STORAGE_KEY) return;
+    syncFavoriteButtons();
+  });
 }
 
 /* ==========================================================================
@@ -282,6 +390,7 @@ function renderProperties() {
       </p>
     `;
     renderPagination(0);
+    window.syncNearbyStayMap?.([]);
     return;
   }
 
@@ -307,7 +416,7 @@ function renderProperties() {
             <div class="image-icons">
               <img src="assets/icons/leaf.svg" alt="Leaf" />
               <img src="assets/icons/marker.svg" alt="Marker" />
-              <img src="assets/icons/heart.svg" alt="Save" />
+              ${renderFavoriteButton(item.ID)}
             </div>
           </div>
           <div class="property-body">
@@ -336,6 +445,7 @@ function renderProperties() {
     .join("");
 
   renderPagination(filtered.length);
+  window.syncNearbyStayMap?.(paginatedItems);
 }
 
 function renderPagination(totalCount) {
@@ -455,6 +565,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initHotelDatePicker();
   setupFilterEvents();
   setupSortDropdown();
+  setupFavoriteToggles();
   await initGallery();
 
   state.properties = await fetchProperties(state.currentSort, state.limit);

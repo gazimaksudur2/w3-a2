@@ -1,6 +1,16 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { warmPropertyCache } from "./services/property.service.js";
 import { warmImagesCache } from "./services/images.service.js";
+import { loadEnvFiles } from "./utils/loadEnv.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+loadEnvFiles([
+  path.join(__dirname, "..", "..", ".env"),
+  path.join(__dirname, "..", ".env"),
+]);
 
 const PORT = Number(process.env.PORT) || 3000;
 

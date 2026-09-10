@@ -204,13 +204,56 @@
                   />
                 </div>
 
-                <div class="gallery-carousel">
-                  <div class="gallery-carousel-filled"></div>
-                  <div class="gallery-carousel-blank"></div>
-                  <div class="gallery-carousel-blank"></div>
-                  <div class="gallery-carousel-blank"></div>
-                  <div class="gallery-carousel-blank"></div>
-                  <div class="gallery-carousel-blank"></div>
+                <div
+                  class="gallery-slider"
+                  id="gallery-slider"
+                  aria-roledescription="carousel"
+                  aria-label="Photo gallery"
+                >
+                  <div class="gallery-slider__viewport" id="gallery-slider-viewport">
+                    <div class="gallery-slider__track" id="gallery-slider-track"></div>
+
+                    <button
+                      type="button"
+                      class="gallery-slider__arrow gallery-slider__arrow--prev"
+                      id="gallery-slider-prev"
+                      aria-label="Previous gallery image"
+                      hidden
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M15 5L8 12L15 19"
+                          stroke="currentColor"
+                          stroke-width="2.2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="gallery-slider__arrow gallery-slider__arrow--next"
+                      id="gallery-slider-next"
+                      aria-label="Next gallery image"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M9 5L16 12L9 19"
+                          stroke="currentColor"
+                          stroke-width="2.2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    <span class="gallery-slider__count" id="gallery-slider-count" aria-live="polite">1/10</span>
+
+                    <div class="gallery-slider__dots" id="gallery-slider-dots" aria-hidden="true">
+                      <div class="gallery-slider__dots-track" id="gallery-slider-dots-track"></div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Side items -->
@@ -906,25 +949,8 @@
                   </div>
 
                   <!-- Map Area -->
-                  <aside class="stay-map">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameborder="0"
-                      scrolling="no"
-                      marginheight="0"
-                      marginwidth="0"
-                      loading="lazy"
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d39712.39162781086!2d-81.27410946119903!3d28.385664522312137!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x88dd8a16525f07e3%3A0xc9a1bcf03126d19d!2sEagle%20Creek%20Golf%20Clubhouse!5e0!3m2!1sen!2sbd!4v1788542599735!5m2!1sen!2sbd"
-                      style="
-                        border: 0;
-                        border-radius: 8px;
-                        position: absolute;
-                        inset: 0;
-                        z-index: 1;
-                      "
-                    >
-                    </iframe>
+                  <aside class="stay-map" aria-label="Nearby properties map">
+                    <div id="stay-map-canvas" class="stay-map__canvas"></div>
                   </aside>
                 </div>
               </section>
@@ -2568,6 +2594,8 @@
     <!-- Custom App Script -->
     <script src="./ui-scripts/guest-filter.js"></script>
     <script src="./ui-scripts/modal.js"></script>
+    <script src="./ui-scripts/gallery-carousel.js"></script>
+    <script src="./ui-scripts/property-map.js"></script>
     <script src="./ui-scripts/course-description.js"></script>
     <script src="./ui-scripts/index.js"></script>
   </body>
