@@ -464,30 +464,6 @@
                   </h2>
 
                   <div class="stay-filters" aria-label="Stay filters">
-                    <!-- <button class="filter-button">
-                      Stay Within 10 Miles
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button>
-
-                    <button class="filter-button">
-                      Property Type
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button>
-
-                    <button class="filter-button" id="bedroom-filter-button">
-                      2 Bedroom
-                      <img
-                        src="assets/icons/dropdown-arrow.svg"
-                        alt="Dropdown Arrow"
-                      />
-                    </button> -->
-
                     <div class="sort-select-wrapper">
                       <select
                         id="sort-select"
@@ -502,6 +478,44 @@
                       </select>
                       <img
                         src="assets/icons/dropdown-arrow.svg"
+                        alt=""
+                        aria-hidden="true"
+                        class="sort-select__arrow"
+                      />
+                    </div>
+                    <div class="sort-select-wrapper">
+                      <select
+                        id="sort-select"
+                        class="sort-select"
+                        aria-label="Sort properties"
+                      >
+                        <option value="stay-in-miles" selected>
+                          Stay Within 10 Miles
+                        </option>
+                        <option value="rich-village-property">Stay Within 5 Miles</option>
+                        <option value="rural-banyan-property">Stay Within 2 Miles</option>
+                      </select>
+                      <img
+                      src="assets/icons/dropdown-arrow.svg"
+                        alt=""
+                        aria-hidden="true"
+                        class="sort-select__arrow"
+                      />
+                    </div>
+                    <div class="sort-select-wrapper">
+                      <select
+                        id="sort-select"
+                        class="sort-select"
+                        aria-label="Sort properties"
+                      >
+                        <option value="seaside-property" selected>
+                          Seaside Property
+                        </option>
+                        <option value="rich-village-property">Rich Village Property</option>
+                        <option value="rural-banyan-property">Rural Banyan Property</option>
+                      </select>
+                      <img
+                      src="assets/icons/dropdown-arrow.svg"
                         alt=""
                         aria-hidden="true"
                         class="sort-select__arrow"
