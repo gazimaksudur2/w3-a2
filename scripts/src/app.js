@@ -27,7 +27,6 @@ async function getInjectedPropertyMapScript() {
 export function createApp() {
   const app = express();
 
-  // Helmet relaxed for cross-origin resources (images, Google Maps)
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -44,11 +43,11 @@ export function createApp() {
     res.status(200).json({ success: true, status: "ok" });
   });
 
-  // 1. API Endpoints
+  // API Endpoints
   app.use(propertyRoutes);
   app.use(imagesRoutes);
 
-  // Inject GOOGLE_MAPS_API_KEY from .env into the map script (no extra API route)
+  // Inject GOOGLE_MAPS_API_KEY from .env into the map script without any extra API route
   app.get("/ui-scripts/property-map.js", async (_req, res, next) => {
     try {
       const source = await getInjectedPropertyMapScript();
