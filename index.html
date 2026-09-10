@@ -934,14 +934,12 @@
 
                         <button class="pagination__next">Next</button>
                       </nav>
-                      <div class="stay-carousel-wrapper">
-                        <div class="stay-carousel-filled"></div>
-                        <div class="stay-carousel-blank"></div>
-                        <div class="stay-carousel-blank"></div>
-                        <div class="stay-carousel-blank"></div>
-                        <div class="stay-carousel-blank"></div>
-                        <div class="stay-carousel-blank"></div>
-                      </div>
+                      <div
+                        class="stay-carousel-wrapper"
+                        id="stay-carousel-dots"
+                        role="group"
+                        aria-label="Nearby stay carousel"
+                      ></div>
                       <button class="btn btn-outline stay-explore">
                         View all places to stay
                       </button>
@@ -2192,7 +2190,7 @@
                 />
                 <div class="date-field" id="checkin-field">
                   <span>CHECK-IN</span>
-                  <strong id="display-checkin">Select Date</strong>
+                  <strong id="display-checkin" class="js-display-checkin">Select Date</strong>
                   <img
                     src="assets/icons/dropdown-arrow.svg"
                     alt="Dropdown Arrow"
@@ -2200,7 +2198,7 @@
                 </div>
                 <div class="date-field" id="checkout-field">
                   <span>CHECK-OUT</span>
-                  <strong id="display-checkout">Select Date</strong>
+                  <strong id="display-checkout" class="js-display-checkout">Select Date</strong>
                   <img
                     src="assets/icons/dropdown-arrow.svg"
                     alt="Dropdown Arrow"
@@ -2249,13 +2247,13 @@
                 <div class="price-row-night">
                   <span> PRICE PER NIGHT </span>
                   <strong>
-                    USD $ <span id="price-per-night">2026</span>
+                    USD $ <span id="price-per-night" class="js-price-per-night">2026</span>
                   </strong>
                 </div>
 
                 <div class="price-row-total">
                   <span> TOTAL PRICE </span>
-                  <strong> USD $ <span id="total-price">2026</span></strong>
+                  <strong> USD $ <span id="total-price" class="js-total-price">2026</span></strong>
                 </div>
               </div>
 
@@ -2474,8 +2472,12 @@
           </button>
         </header>
         <div class="gallery-modal__body">
-          <div class="gallery-modal__grid" id="modal-gallery-grid">
-            <!-- Populated dynamically via script.js -->
+          <div id="gallery-modal-title-slot"></div>
+          <div class="gallery-modal__content">
+            <div class="gallery-modal__grid" id="modal-gallery-grid">
+              <!-- Populated dynamically via script.js -->
+            </div>
+            <div id="gallery-modal-booking-slot"></div>
           </div>
         </div>
       </div>
@@ -2596,6 +2598,7 @@
     <script src="./ui-scripts/modal.js"></script>
     <script src="./ui-scripts/gallery-carousel.js"></script>
     <script src="./ui-scripts/property-map.js"></script>
+    <script src="./ui-scripts/property-carousel.js"></script>
     <script src="./ui-scripts/course-description.js"></script>
     <script src="./ui-scripts/index.js"></script>
   </body>

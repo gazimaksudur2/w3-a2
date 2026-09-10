@@ -79,9 +79,9 @@ async function fetchGalleryImages() {
    HOTEL DATEPICKER INTEGRATION
    ========================================================================== */
 
-function initHotelDatePicker() {
-  const dateInput = document.getElementById("hotel-datepicker-input");
-  if (!dateInput || typeof HotelDatepicker === "undefined") return;
+function initHotelDatePicker(root = document) {
+  const inputs = root.querySelectorAll(".hotel-date-input-overlay");
+  if (!inputs.length || typeof HotelDatepicker === "undefined") return;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -91,19 +91,8 @@ function initHotelDatePicker() {
 
   const startFormatted = window.fecha.format(today, "YYYY-MM-DD");
   const endFormatted = window.fecha.format(checkoutDefault, "YYYY-MM-DD");
-  dateInput.value = `${startFormatted} - ${endFormatted}`;
 
-  new HotelDatepicker(dateInput, {
-    format: "YYYY-MM-DD",
-    separator: " - ",
-    startDate: today,
-    selectForward: true,
-    minNights: 1,
-    showTopbar: true,
-    autoClose: true,
-  });
-
-  function handleDateSelection() {
+  function handleDateSelection(dateInput) {
     const value = dateInput.value;
     if (!value || !value.includes(" - ")) return;
 
@@ -121,10 +110,15 @@ function initHotelDatePicker() {
       return;
     }
 
-    document.getElementById("display-checkin").textContent =
-      window.fecha.format(startDate, "DD MMM YYYY").toUpperCase();
-    document.getElementById("display-checkout").textContent =
-      window.fecha.format(endDate, "DD MMM YYYY").toUpperCase();
+    const checkinText = window.fecha.format(startDate, "DD MMM YYYY").toUpperCase();
+    const checkoutText = window.fecha.format(endDate, "DD MMM YYYY").toUpperCase();
+
+    document.querySelectorAll(".js-display-checkin").forEach((el) => {
+      el.textContent = checkinText;
+    });
+    document.querySelectorAll(".js-display-checkout").forEach((el) => {
+      el.textContent = checkoutText;
+    });
 
     const diffTime = Math.abs(endDate - startDate);
     state.selectedNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
@@ -132,10 +126,25 @@ function initHotelDatePicker() {
     updateBookingTotals();
   }
 
-  dateInput.addEventListener("afterClose", handleDateSelection);
-  dateInput.addEventListener("change", handleDateSelection);
+  inputs.forEach((dateInput) => {
+    if (dateInput.dataset.datepickerReady === "true") return;
+    dateInput.dataset.datepickerReady = "true";
+    dateInput.value = `${startFormatted} - ${endFormatted}`;
 
-  handleDateSelection();
+    new HotelDatepicker(dateInput, {
+      format: "YYYY-MM-DD",
+      separator: " - ",
+      startDate: today,
+      selectForward: true,
+      minNights: 1,
+      showTopbar: true,
+      autoClose: true,
+    });
+
+    dateInput.addEventListener("afterClose", () => handleDateSelection(dateInput));
+    dateInput.addEventListener("change", () => handleDateSelection(dateInput));
+    handleDateSelection(dateInput);
+  });
 }
 
 /* ==========================================================================
@@ -143,20 +152,47 @@ function initHotelDatePicker() {
    ========================================================================== */
 
 function updateBookingTotals() {
-  const pricePerNightEl = document.getElementById("price-per-night");
-  const totalPriceEl = document.getElementById("total-price");
-  if (!pricePerNightEl || !totalPriceEl) return;
-
   const nights = Math.max(1, state.selectedNights || 1);
   const totalPrice = PRICE_PER_NIGHT * nights;
+  const perNight = PRICE_PER_NIGHT.toLocaleString("en-US");
+  const total = totalPrice.toLocaleString("en-US");
 
-  pricePerNightEl.textContent = PRICE_PER_NIGHT.toLocaleString("en-US");
-  totalPriceEl.textContent = totalPrice.toLocaleString("en-US");
+  document.querySelectorAll(".js-price-per-night").forEach((el) => {
+    el.textContent = perNight;
+  });
+  document.querySelectorAll(".js-total-price").forEach((el) => {
+    el.textContent = total;
+  });
 }
 
 /* ==========================================================================
    DYNAMIC HERO GALLERY & FULL MODAL
    ========================================================================== */
+
+function mountGalleryModalChrome() {
+  const titleSlot = document.getElementById("gallery-modal-title-slot");
+  const bookingSlot = document.getElementById("gallery-modal-booking-slot");
+  const titleSource = document.querySelector(".course-header");
+  const bookingSource = document.querySelector(".course-layout > .booking-card");
+
+  if (titleSlot && titleSource && titleSlot.childElementCount === 0) {
+    const title = titleSource.cloneNode(true);
+    title.classList.add("gallery-modal__title");
+    titleSlot.appendChild(title);
+  }
+
+  if (bookingSlot && bookingSource && bookingSlot.childElementCount === 0) {
+    const booking = bookingSource.cloneNode(true);
+    booking.classList.add("gallery-modal__booking");
+    booking.querySelectorAll("[id]").forEach((el) => {
+      el.id = `modal-${el.id}`;
+    });
+    bookingSlot.appendChild(booking);
+    initHotelDatePicker(booking);
+  }
+}
+
+window.mountGalleryModalChrome = mountGalleryModalChrome;
 
 function setupGalleryModal() {
   const modal = document.getElementById("gallery-modal");
@@ -170,6 +206,8 @@ function setupGalleryModal() {
 
   function openModal() {
     if (!state.galleryImages.length) return;
+
+    mountGalleryModalChrome();
 
     if (grid && grid.children.length === 0) {
       grid.innerHTML = state.galleryImages
@@ -196,6 +234,7 @@ function setupGalleryModal() {
   }
 
   function closeModal() {
+    if (document.getElementById("guest-modal")?.classList.contains("is-open")) return;
     modal.classList.remove("is-open");
     modal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
@@ -391,6 +430,7 @@ function renderProperties() {
     `;
     renderPagination(0);
     window.syncNearbyStayMap?.([]);
+    window.syncStayPropertyCarousel?.();
     return;
   }
 
@@ -446,6 +486,7 @@ function renderProperties() {
 
   renderPagination(filtered.length);
   window.syncNearbyStayMap?.(paginatedItems);
+  window.syncStayPropertyCarousel?.();
 }
 
 function renderPagination(totalCount) {
@@ -491,18 +532,20 @@ window.selectProperty = function (propertyId) {
   const bookingCard = document.querySelector(".booking-card");
   if (!bookingCard) return;
 
-  const guestText = bookingCard.querySelector(".guest-select strong");
-  if (guestText && p.Counts?.Occupancy) {
-    guestText.textContent = `${p.Counts.Occupancy} GUESTS, ${p.Counts.Bedroom || 1} BEDROOMS`;
-  }
+  document.querySelectorAll(".booking-card .guest-select strong").forEach((guestText) => {
+    if (p.Counts?.Occupancy) {
+      guestText.textContent = `${p.Counts.Occupancy} GUESTS, ${p.Counts.Bedroom || 1} BEDROOMS`;
+    }
+  });
 
-  const ctaButton = bookingCard.querySelector(".check-button");
-  if (ctaButton && item.Partner?.URL) {
-    ctaButton.onclick = () => window.open(item.Partner.URL, "_blank");
-  }
+  document.querySelectorAll(".booking-card .check-button").forEach((ctaButton) => {
+    if (item.Partner?.URL) {
+      ctaButton.onclick = () => window.open(item.Partner.URL, "_blank");
+    }
+  });
 
   updateBookingTotals();
-  bookingCard.scrollIntoView({ behavior: "smooth" });
+  document.querySelector(".course-layout > .booking-card")?.scrollIntoView({ behavior: "smooth" });
 };
 
 /* ==========================================================================

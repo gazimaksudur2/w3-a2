@@ -33,6 +33,10 @@
       const images = await getImages();
       if (!images || images.length === 0) return;
 
+      if (typeof window.mountGalleryModalChrome === "function") {
+        window.mountGalleryModalChrome();
+      }
+
       if (grid && grid.children.length === 0) {
         grid.innerHTML = images
           .map(
@@ -58,6 +62,7 @@
     }
 
     function closeModal() {
+      if (document.getElementById("guest-modal")?.classList.contains("is-open")) return;
       modal.classList.remove("is-open");
       modal.setAttribute("aria-hidden", "true");
       document.body.classList.remove("modal-open");

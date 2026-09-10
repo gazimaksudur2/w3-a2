@@ -32,8 +32,9 @@ function formatGuestSummary() {
 }
 
 function updateGuestSelectButton() {
-  const trigger = document.querySelector(".guest-select strong");
-  if (trigger) trigger.textContent = formatGuestSummary().toUpperCase();
+  document.querySelectorAll(".guest-select strong").forEach((trigger) => {
+    trigger.textContent = formatGuestSummary().toUpperCase();
+  });
 }
 
 function updateStepperUI() {
@@ -64,11 +65,10 @@ function changeGuestValue(type, delta) {
 
 function setupGuestModal() {
   const modal = document.getElementById("guest-modal");
-  const trigger = document.querySelector(".guest-select");
   const closeBtn = document.getElementById("guest-modal-close");
   const backdrop = document.getElementById("guest-modal-backdrop");
 
-  if (!modal || !trigger) return;
+  if (!modal) return;
 
   function openModal() {
     updateStepperUI();
@@ -80,10 +80,14 @@ function setupGuestModal() {
   function closeModal() {
     modal.classList.remove("is-open");
     modal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-open");
+    if (!document.getElementById("gallery-modal")?.classList.contains("is-open")) {
+      document.body.classList.remove("modal-open");
+    }
   }
 
-  trigger.addEventListener("click", openModal);
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".guest-select")) openModal();
+  });
   closeBtn?.addEventListener("click", closeModal);
   backdrop?.addEventListener("click", closeModal);
 

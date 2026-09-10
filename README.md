@@ -6,7 +6,7 @@ Express API that serves property listing datasets and property images.
 
 ```bash
 npm install
-cp .env.example .env   # optional, defaults work out of the box
+cp .env.example .env   # set GOOGLE_MAPS_API_KEY for the nearby-stay map
 npm run dev             # starts the server and restarts on file changes
 ```
 
@@ -93,6 +93,21 @@ GET /images/image1.jpg   -> image/jpeg
 
 ---
 
+### `GET /maps-config`
+
+Returns the Google Maps JavaScript API key from `GOOGLE_MAPS_API_KEY` in `.env`. The nearby-stay map uses this to place markers for the currently displayed properties.
+
+```
+GET /maps-config
+```
+```json
+{ "googleApiKey": "..." }
+```
+
+If the env var is missing, `googleApiKey` is an empty string.
+
+---
+
 ## `src/data/images.json`
 
 This file drives the `/images` endpoint. You can add, remove, or rename images here without touching the rest of the code.
@@ -123,17 +138,20 @@ src/
   controllers/
     property.controller.js  GET /get-property
     images.controller.js    GET /images
+    maps.controller.js      GET /maps-config
   services/
     property.service.js     loads the 3 property datasets
     images.service.js       loads images.json
   routes/
     property.routes.js
     images.routes.js
+    maps.routes.js
   middlewares/
     errorHandler.js
     notFound.js
   utils/
     ApiError.js
+    loadEnv.js
     loadJson.js
     queryParsers.js
   data/
