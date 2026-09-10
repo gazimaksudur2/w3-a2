@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadJsonFile } from "../utils/loadJson.js";
+import { normalizeImageEntries } from "../utils/normalizeImage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IMAGES_JSON_PATH = path.join(__dirname, "..", "data", "images.json");
@@ -14,7 +15,10 @@ export async function warmImagesCache() {
     throw new Error('images.json is missing the expected "images" array.');
   }
 
-  cachedImages = data;
+  cachedImages = {
+    ...data,
+    images: normalizeImageEntries(data.images),
+  };
 }
 
 export function getImages() {

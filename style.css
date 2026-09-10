@@ -167,6 +167,13 @@ button {
   background: var(--accent-hover);
 }
 
+.btn-primary:disabled,
+.btn-outline:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn-outline {
   border: 1px solid var(--green-dark);
 
@@ -1620,6 +1627,14 @@ body.modal-open {
   gap: 8px;
 }
 
+.property-grid__empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
 .property-card {
   border: 1px solid var(--border);
 
@@ -1635,6 +1650,10 @@ body.modal-open {
 .property-card.is-map-highlight {
   border-color: var(--green-primary);
   box-shadow: 0 0 0 2px rgba(46, 107, 62, 0.28), var(--shadow-card);
+}
+
+.property-card.is-incomplete .property-body h3 {
+  color: var(--text-muted);
 }
 
 .property-image {
@@ -1910,12 +1929,13 @@ body.modal-open {
   cursor: pointer;
 }
 
-.pagination__prev:disabled {
+.pagination__prev:disabled,
+.pagination__next:disabled {
   color: var(--text-muted);
   cursor: default;
 }
 
-.pagination__next:hover {
+.pagination__next:hover:not(:disabled) {
   color: var(--green-primary);
 }
 

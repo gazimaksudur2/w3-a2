@@ -62,9 +62,12 @@
     const nextBtn = document.getElementById("gallery-slider-next");
     const countEl = document.getElementById("gallery-slider-count");
 
-    if (!root || !viewport || !track || !dotsTrack || !images.length) return;
+    if (!root || !viewport || !track || !dotsTrack || !Array.isArray(images)) return;
 
-    const total = images.length;
+    const slides = images.filter((image) => image && typeof image.path === "string" && image.path);
+    if (!slides.length) return;
+
+    const total = slides.length;
     const dotCount = getDotCount(total);
     let index = 0;
     let dragStartX = 0;
@@ -77,7 +80,7 @@
     let stretchTimer = 0;
 
     track.innerHTML = "";
-    images.forEach((image, i) => track.appendChild(createSlide(image, i)));
+    slides.forEach((image, i) => track.appendChild(createSlide(image, i)));
 
     dotsTrack.innerHTML = "";
     for (let i = 0; i < dotCount; i += 1) {

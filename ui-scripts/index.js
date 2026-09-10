@@ -10,6 +10,8 @@ const IMAGE_SERVICE_BASE = "https://beta.imgservice.rentbyowner.com/640x300/";
 const PRICE_PER_NIGHT = 2026;
 const PLATFORM_LIMITS = { desktop: 6, mobile: 4 };
 const FAVORITES_STORAGE_KEY = "stayplay.favoritePropertyIds";
+const FALLBACK_PROPERTY_IMAGE = "assets/images/wide-resort1.jpg";
+const FALLBACK_PROPERTY_NAME = "Stay details unavailable";
 
 /* ==========================================================================
    PLATFORM DETECTION
@@ -54,12 +56,13 @@ const state = {
 
 async function fetchProperties(sortType = "most-popular", limit = state.limit) {
   try {
-    const res = await fetch(`/get-property?${sortType}=true&limit=${limit}`);
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const res = await fetch(
+      `/get-property?${encodeURIComponent(sortType)}=true&limit=${encodeURIComponent(limit)}`
+    );
+    if (!res.ok) return [];
     const data = await res.json();
-    return data?.Result?.Items || [];
-  } catch (err) {
-    console.error("Error fetching properties:", err);
+    return sanitizeProperties(data?.Result?.Items);
+  } catch {
     return [];
   }
 }
@@ -67,10 +70,9 @@ async function fetchProperties(sortType = "most-popular", limit = state.limit) {
 async function fetchGalleryImages() {
   try {
     const res = await fetch("/images?full=true");
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error("Error fetching gallery images:", err);
+    if (!res.ok) return [];
+    return sanitizeGalleryImages(await res.json());
+  } catch {
     return [];
   }
 }
@@ -106,7 +108,6 @@ function initHotelDatePicker(root = document) {
     const isInvalidRange = endDate <= startDate;
 
     if (isPast || isInvalidRange) {
-      console.warn("Invalid date selection blocked:", { startDate, endDate });
       return;
     }
 
@@ -194,63 +195,6 @@ function mountGalleryModalChrome() {
 
 window.mountGalleryModalChrome = mountGalleryModalChrome;
 
-function setupGalleryModal() {
-  const modal = document.getElementById("gallery-modal");
-  const viewButton = document.querySelector(".gallery-view-button");
-  const closeButton = document.getElementById("gallery-modal-close");
-  const backdrop = document.getElementById("gallery-modal-backdrop");
-  const grid = document.getElementById("modal-gallery-grid");
-  const countEl = document.getElementById("modal-image-count");
-
-  if (!modal || !viewButton) return;
-
-  function openModal() {
-    if (!state.galleryImages.length) return;
-
-    mountGalleryModalChrome();
-
-    if (grid && grid.children.length === 0) {
-      grid.innerHTML = state.galleryImages
-        .map(
-          (img, index) => `
-          <div class="gallery-modal__card">
-            <img 
-              src="${img.path}" 
-              alt="${img.alt || `Golf course image ${index + 1}`}" 
-              loading="lazy" 
-            />
-            <span class="gallery-modal__caption">${img.alt || `Photo ${index + 1}`}</span>
-          </div>
-        `
-        )
-        .join("");
-    }
-
-    if (countEl) countEl.textContent = state.galleryImages.length;
-
-    modal.classList.add("is-open");
-    modal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("modal-open");
-  }
-
-  function closeModal() {
-    if (document.getElementById("guest-modal")?.classList.contains("is-open")) return;
-    modal.classList.remove("is-open");
-    modal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-open");
-  }
-
-  viewButton.addEventListener("click", openModal);
-  closeButton?.addEventListener("click", closeModal);
-  backdrop?.addEventListener("click", closeModal);
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modal.classList.contains("is-open")) {
-      closeModal();
-    }
-  });
-}
-
 const FALLBACK_GALLERY_IMAGES = Array.from({ length: 10 }, (_, i) => ({
   id: i + 1,
   path: `/images/image${i + 1}.jpg`,
@@ -259,7 +203,9 @@ const FALLBACK_GALLERY_IMAGES = Array.from({ length: 10 }, (_, i) => ({
 
 async function initGallery() {
   const fetched = await fetchGalleryImages();
-  const images = fetched && fetched.length ? fetched : FALLBACK_GALLERY_IMAGES;
+  const images = sanitizeGalleryImages(
+    fetched && fetched.length ? fetched : FALLBACK_GALLERY_IMAGES
+  );
 
   window.galleryImages = images;
   state.galleryImages = images;
@@ -290,8 +236,6 @@ async function initGallery() {
   if (typeof window.initGalleryCarousel === "function") {
     window.initGalleryCarousel(images);
   }
-
-  setupGalleryModal();
 }
 
 /* ==========================================================================
@@ -344,7 +288,7 @@ function syncFavoriteButtons() {
 }
 
 function renderFavoriteButton(propertyId) {
-  const safeId = String(propertyId).replace(/"/g, "&quot;");
+  const safeId = escapeHtml(propertyId);
   const active = isFavoriteProperty(propertyId);
 
   return `
@@ -373,16 +317,22 @@ function setupFavoriteToggles() {
   grid.dataset.favoritesBound = "true";
 
   grid.addEventListener("click", (event) => {
-    const button = event.target.closest(".property-favorite");
-    if (!button || !grid.contains(button)) return;
+    const favorite = event.target.closest(".property-favorite");
+    if (favorite && grid.contains(favorite)) {
+      event.preventDefault();
+      event.stopPropagation();
 
-    event.preventDefault();
-    event.stopPropagation();
+      const propertyId = favorite.dataset.propertyId;
+      if (!propertyId) return;
 
-    const propertyId = button.dataset.propertyId;
-    if (!propertyId) return;
+      applyFavoriteButtonState(favorite, toggleFavoriteProperty(propertyId));
+      return;
+    }
 
-    applyFavoriteButtonState(button, toggleFavoriteProperty(propertyId));
+    const details = event.target.closest("[data-select-property]");
+    if (!details || !grid.contains(details)) return;
+
+    selectProperty(details.dataset.selectProperty);
   });
 
   window.addEventListener("storage", (event) => {
@@ -392,42 +342,244 @@ function setupFavoriteToggles() {
 }
 
 /* ==========================================================================
-   PROPERTY RENDERING & CARD ACTIONS
+   PROPERTY SANITIZATION & CARD ACTIONS
    ========================================================================== */
 
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function textValue(value) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return "";
+}
+
+function finiteNumber(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sanitizeGalleryImages(raw) {
+  if (!Array.isArray(raw)) return [];
+
+  const usable = [];
+  for (const image of raw) {
+    if (typeof image === "string" && image.trim()) {
+      usable.push({ path: image.trim(), alt: "" });
+      continue;
+    }
+    if (!isPlainObject(image)) continue;
+    const path = textValue(image.path);
+    if (!path) continue;
+    usable.push({
+      id: image.id,
+      path,
+      alt: textValue(image.alt),
+    });
+  }
+
+  return usable.map((image, index) => ({
+    id: image.id ?? index + 1,
+    path: image.path,
+    alt: image.alt || `Golf course image ${index + 1}`,
+  }));
+}
+
+function sanitizeProperties(rawItems) {
+  if (!Array.isArray(rawItems)) return [];
+
+  return rawItems
+    .map((item) => {
+      if (!isPlainObject(item)) return null;
+      const ID = textValue(item.ID);
+      if (!ID) return null;
+
+      const geo = isPlainObject(item.GeoInfo) ? item.GeoInfo : {};
+      const property = isPlainObject(item.Property) ? item.Property : {};
+      const partner = isPlainObject(item.Partner) ? item.Partner : {};
+      const counts = isPlainObject(property.Counts) ? property.Counts : {};
+      const lat = finiteNumber(geo.Lat);
+      const lng = finiteNumber(geo.Lng);
+
+      return {
+        ...item,
+        ID,
+        GeoInfo: {
+          ...geo,
+          City: textValue(geo.City),
+          Country: textValue(geo.Country),
+          Display: textValue(geo.Display),
+          Categories: Array.isArray(geo.Categories) ? geo.Categories.filter(isPlainObject) : [],
+          Lat: lat === null ? null : geo.Lat,
+          Lng: lng === null ? null : geo.Lng,
+        },
+        Property: {
+          ...property,
+          PropertyName: textValue(property.PropertyName),
+          PropertyType: textValue(property.PropertyType),
+          FeatureImage: textValue(property.FeatureImage),
+          Price: finiteNumber(property.Price),
+          ReviewScore: finiteNumber(property.ReviewScore),
+          TopAmenities: Array.isArray(property.TopAmenities)
+            ? property.TopAmenities.filter((entry) => isPlainObject(entry) && textValue(entry.Name))
+            : [],
+          Counts: {
+            ...counts,
+            Bedroom: finiteNumber(counts.Bedroom),
+            Bathroom: finiteNumber(counts.Bathroom),
+            Reviews: finiteNumber(counts.Reviews),
+            Occupancy: finiteNumber(counts.Occupancy),
+          },
+        },
+        Partner: {
+          ...partner,
+          URL: textValue(partner.URL) || textValue(partner.CacheURL),
+        },
+      };
+    })
+    .filter(Boolean);
+}
+
+function categoryName(categories, type) {
+  if (!Array.isArray(categories)) return "";
+  const match = categories.find(
+    (entry) => textValue(entry?.Type).toLowerCase() === type && textValue(entry?.Name)
+  );
+  return match ? textValue(match.Name) : "";
+}
+
+function displayName(item) {
+  return textValue(item?.Property?.PropertyName) || FALLBACK_PROPERTY_NAME;
+}
+
+function displayLocation(item) {
+  const geo = item?.GeoInfo || {};
+  const city = textValue(geo.City);
+  const state = categoryName(geo.Categories, "state");
+  const country = textValue(geo.Country);
+
+  if (city && state) return `${city}, ${state}`;
+  if (city) return city;
+  if (state) return state;
+  if (country) return country;
+  return "Location unavailable";
+}
+
+function displayPrice(item) {
+  const price = finiteNumber(item?.Property?.Price);
+  if (price === null) return "Price unavailable";
+  return `$${Math.round(price)}`;
+}
+
+function displayRating(item) {
+  const score = finiteNumber(item?.Property?.ReviewScore);
+  if (score === null) return "Rating unavailable";
+  const label = Number.isInteger(score) ? `${score}.0` : String(score);
+  return `${label} Exceptional`;
+}
+
+function displayReviews(item) {
+  const reviews = finiteNumber(item?.Property?.Counts?.Reviews);
+  if (reviews === null) return "No reviews yet";
+  return `${reviews} Reviews`;
+}
+
+function displayAmenities(item) {
+  const names = (item?.Property?.TopAmenities || [])
+    .map((entry) => textValue(entry?.Name))
+    .filter(Boolean);
+
+  if (names.length) return names.join(" • ");
+
+  const occupancy = finiteNumber(item?.Property?.Counts?.Occupancy);
+  const type = textValue(item?.Property?.PropertyType);
+  const parts = [];
+  if (occupancy !== null) parts.push(`Sleeps ${occupancy}`);
+  if (type) parts.push(type);
+  return parts.join(" • ") || "Amenities unavailable";
+}
+
+function bookingSource(item) {
+  return safeExternalUrl(item?.Partner?.URL) ? "Booking.com" : "Dates unavailable";
+}
+
+function safeExternalUrl(value) {
+  const raw = textValue(value);
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "http:" || url.protocol === "https:") return url.href;
+  } catch {
+    return "";
+  }
+  return "";
+}
+
 function buildPropertyImageUrl(featureImage) {
-  if (!featureImage) return "assets/images/wide-resort1.jpg";
+  if (!textValue(featureImage)) return FALLBACK_PROPERTY_IMAGE;
   return `${IMAGE_SERVICE_BASE}${featureImage}`;
+}
+
+function matchesSearch(item, query) {
+  if (!query) return true;
+  const needle = query.toLowerCase();
+  const haystacks = [
+    displayName(item),
+    textValue(item?.GeoInfo?.City),
+    textValue(item?.GeoInfo?.Display),
+    textValue(item?.GeoInfo?.Country),
+    categoryName(item?.GeoInfo?.Categories, "state"),
+  ];
+  return haystacks.some((value) => value.toLowerCase().includes(needle));
+}
+
+function getFilteredProperties() {
+  return state.properties.filter((item) => {
+    const matchesBedrooms =
+      !state.bedroomFilter || item.Property?.Counts?.Bedroom === state.bedroomFilter;
+    return matchesSearch(item, state.searchQuery) && matchesBedrooms;
+  });
+}
+
+function renderSeeDatesAction(url) {
+  if (!url) {
+    return `<button type="button" class="btn btn-primary" disabled>See Dates</button>`;
+  }
+
+  return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="btn btn-primary">See Dates</a>`;
 }
 
 function renderProperties() {
   const grid = document.querySelector(".property-grid");
   if (!grid) return;
 
-  const filtered = state.properties.filter((item) => {
-    const p = item.Property;
-    const geo = item.GeoInfo;
-
-    const matchesSearch =
-      !state.searchQuery ||
-      p.PropertyName.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-      geo?.City?.toLowerCase().includes(state.searchQuery.toLowerCase());
-
-    const matchesBedrooms =
-      !state.bedroomFilter || p.Counts?.Bedroom === state.bedroomFilter;
-
-    return matchesSearch && matchesBedrooms;
-  });
+  const filtered = getFilteredProperties();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize) || 1);
+  if (state.page > totalPages) state.page = totalPages;
+  if (state.page < 1) state.page = 1;
 
   const startIndex = (state.page - 1) * state.pageSize;
   const paginatedItems = filtered.slice(startIndex, startIndex + state.pageSize);
 
   if (!paginatedItems.length) {
-    grid.innerHTML = `
-      <p style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-        No properties found matching your selection.
-      </p>
-    `;
+    const emptyMessage = state.properties.length
+      ? "No properties found matching your selection."
+      : "No stays are available right now.";
+    grid.innerHTML = `<p class="property-grid__empty">${emptyMessage}</p>`;
     renderPagination(0);
     window.syncNearbyStayMap?.([]);
     window.syncStayPropertyCarousel?.();
@@ -436,47 +588,45 @@ function renderProperties() {
 
   grid.innerHTML = paginatedItems
     .map((item) => {
-      const p = item.Property;
-      const geo = item.GeoInfo;
-      const price = p.Price ? `$${Math.round(p.Price)}` : "N/A";
-      const rating = p.ReviewScore ? `${p.ReviewScore}.0 Exceptional` : "Top Rated";
-      const reviews = p.Counts?.Reviews ? `${p.Counts.Reviews} Reviews` : "Verified";
-      const location = `${geo?.City || "Orlando"}, ${geo?.Categories?.[1]?.Name || "FL"}`;
-      const imageSrc = buildPropertyImageUrl(p.FeatureImage);
-
-      const topAmenities =
-        p.TopAmenities?.map((a) => a.Name).join(" • ") ||
-        `Sleeps ${p.Counts?.Occupancy || 2} • ${p.PropertyType || "Resort"}`;
+      const name = displayName(item);
+      const price = displayPrice(item);
+      const rating = displayRating(item);
+      const reviews = displayReviews(item);
+      const location = displayLocation(item);
+      const imageSrc = buildPropertyImageUrl(item.Property?.FeatureImage);
+      const topAmenities = displayAmenities(item);
+      const partnerUrl = safeExternalUrl(item.Partner?.URL);
+      const incomplete = !textValue(item.Property?.PropertyName);
 
       return `
-        <article class="property-card" data-id="${item.ID}">
+        <article class="property-card${incomplete ? " is-incomplete" : ""}" data-id="${escapeHtml(item.ID)}">
           <div class="property-image">
-            <img src="${imageSrc}" alt="${p.PropertyName}" onerror="this.src='assets/images/wide-resort1.jpg'" />
+            <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(name)}" onerror="this.onerror=null;this.src='${FALLBACK_PROPERTY_IMAGE}'" />
             <span class="course-badge">50+ Golf <br /> Courses Nearby</span>
             <div class="image-icons">
-              <img src="assets/icons/leaf.svg" alt="Leaf" />
-              <img src="assets/icons/marker.svg" alt="Marker" />
+              <img src="assets/icons/leaf.svg" alt="" />
+              <img src="assets/icons/marker.svg" alt="" />
               ${renderFavoriteButton(item.ID)}
             </div>
           </div>
           <div class="property-body">
             <div class="property-rating">
-              <img src="assets/icons/circle-star.svg" alt="Rating star" />
-              ${rating}
+              <img src="assets/icons/circle-star.svg" alt="" />
+              ${escapeHtml(rating)}
               <strong class="property-rating-separator">|</strong>
-              <span class="property-rating-reviews">${reviews}</span>
+              <span class="property-rating-reviews">${escapeHtml(reviews)}</span>
             </div>
-            <h3>${p.PropertyName}</h3>
-            <p class="booking-source">Booking.com</p>
+            <h3>${escapeHtml(name)}</h3>
+            <p class="booking-source">${escapeHtml(bookingSource(item))}</p>
             <strong class="property-price-container">
-              From ${price}
-              <img src="assets/icons/info.svg" alt="Info" />
+              From ${escapeHtml(price)}
+              <img src="assets/icons/info.svg" alt="" />
             </strong>
-            <p class="property-details">${topAmenities}</p>
-            <p class="property-location">${location}</p>
+            <p class="property-details">${escapeHtml(topAmenities)}</p>
+            <p class="property-location">${escapeHtml(location)}</p>
             <div class="property-actions">
-              <button class="btn btn-outline" onclick="selectProperty('${item.ID}')">Details</button>
-              <a href="${item.Partner?.URL || '#'}" target="_blank" rel="noopener" class="btn btn-primary">See Dates</a>
+              <button type="button" class="btn btn-outline" data-select-property="${escapeHtml(item.ID)}">Details</button>
+              ${renderSeeDatesAction(partnerUrl)}
             </div>
           </div>
         </article>
@@ -517,31 +667,32 @@ function renderPagination(totalCount) {
 }
 
 window.goToPage = function (pageNumber) {
-  state.page = pageNumber;
+  const totalPages = Math.max(1, Math.ceil(getFilteredProperties().length / state.pageSize) || 1);
+  const nextPage = Math.min(totalPages, Math.max(1, Number(pageNumber) || 1));
+  if (nextPage === state.page) return;
+  state.page = nextPage;
   renderProperties();
   document.querySelector(".nearby-stay-section")?.scrollIntoView({ behavior: "smooth" });
 };
 
 window.selectProperty = function (propertyId) {
-  const item = state.properties.find((p) => p.ID === propertyId);
+  const item = state.properties.find((property) => property.ID === String(propertyId));
   if (!item) return;
 
   state.selectedProperty = item;
-  const p = item.Property;
 
-  const bookingCard = document.querySelector(".booking-card");
-  if (!bookingCard) return;
+  const occupancy = finiteNumber(item.Property?.Counts?.Occupancy);
+  const bedrooms = finiteNumber(item.Property?.Counts?.Bedroom);
+  if (occupancy !== null) {
+    const bedroomLabel = bedrooms !== null ? `${bedrooms} BEDROOMS` : "BEDROOMS UNAVAILABLE";
+    document.querySelectorAll(".booking-card .guest-select strong").forEach((guestText) => {
+      guestText.textContent = `${occupancy} GUESTS, ${bedroomLabel}`;
+    });
+  }
 
-  document.querySelectorAll(".booking-card .guest-select strong").forEach((guestText) => {
-    if (p.Counts?.Occupancy) {
-      guestText.textContent = `${p.Counts.Occupancy} GUESTS, ${p.Counts.Bedroom || 1} BEDROOMS`;
-    }
-  });
-
+  const partnerUrl = safeExternalUrl(item.Partner?.URL);
   document.querySelectorAll(".booking-card .check-button").forEach((ctaButton) => {
-    if (item.Partner?.URL) {
-      ctaButton.onclick = () => window.open(item.Partner.URL, "_blank");
-    }
+    ctaButton.onclick = partnerUrl ? () => window.open(partnerUrl, "_blank") : null;
   });
 
   updateBookingTotals();
@@ -604,18 +755,26 @@ function setupFilterEvents() {
    INITIALIZATION
    ========================================================================== */
 
-document.addEventListener("DOMContentLoaded", async () => {
-  initHotelDatePicker();
-  setupFilterEvents();
-  setupSortDropdown();
-  setupFavoriteToggles();
-  await initGallery();
-
-  state.properties = await fetchProperties(state.currentSort, state.limit);
-  if (state.properties.length > 0) {
-    state.selectedProperty = state.properties[0];
-  }
-
-  renderProperties();
-  updateBookingTotals();
+document.addEventListener("DOMContentLoaded", () => {
+  void bootstrapApp();
 });
+
+async function bootstrapApp() {
+  try {
+    initHotelDatePicker();
+    setupFilterEvents();
+    setupSortDropdown();
+    setupFavoriteToggles();
+    await initGallery();
+
+    state.properties = await fetchProperties(state.currentSort, state.limit);
+    state.selectedProperty = state.properties[0] || null;
+
+    renderProperties();
+    updateBookingTotals();
+  } catch {
+    state.properties = Array.isArray(state.properties) ? state.properties : [];
+    renderProperties();
+    updateBookingTotals();
+  }
+}

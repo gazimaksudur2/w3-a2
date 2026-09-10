@@ -3,18 +3,22 @@
  */
 
 (function () {
+  function usableImages(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((image) => image && typeof image.path === "string" && image.path);
+  }
+
   async function getImages() {
     if (window.galleryImages && window.galleryImages.length > 0) {
-      return window.galleryImages;
+      return usableImages(window.galleryImages);
     }
     try {
       const res = await fetch("/images?full=true");
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const images = await res.json();
+      if (!res.ok) return [];
+      const images = usableImages(await res.json());
       window.galleryImages = images;
       return images;
-    } catch (err) {
-      console.error("Failed to load modal images:", err);
+    } catch {
       return [];
     }
   }

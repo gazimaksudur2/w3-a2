@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadJsonFile } from "../utils/loadJson.js";
+import { normalizePropertyItems } from "../utils/normalizeProperty.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -38,7 +39,7 @@ export function getDataset(key, limit) {
     throw new Error(`Dataset "${key}" was requested before it was loaded.`);
   }
 
-  const items = dataset.Result.Items;
+  const items = normalizePropertyItems(dataset.Result.Items);
   const slicedItems = typeof limit === "number" ? items.slice(0, limit) : items;
 
   return {
